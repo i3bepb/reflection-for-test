@@ -11,6 +11,7 @@ When need call private method and check result in test, you can use trait **Acce
 
 ```php
   
+use I3bepb\ReflectionForTest\AccessToMethod;
 use PHPUnit\Framework\TestCase;
 
 class AnyTest extends TestCase
