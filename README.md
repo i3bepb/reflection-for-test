@@ -1,4 +1,8 @@
 # Reflection for test
+
+[![Latest Stable Version](http://poser.pugx.org/i3bepb/reflection-for-test/v)](https://packagist.org/packages/i3bepb/reflection-for-test)
+[![Total Downloads](http://poser.pugx.org/i3bepb/reflection-for-test/downloads)](https://packagist.org/packages/i3bepb/reflection-for-test)
+
 Trait adding access method through reflection for tests
 
 ## Install
