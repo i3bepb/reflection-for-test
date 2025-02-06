@@ -7,7 +7,7 @@ Trait adding access method through reflection for tests
 
 ## Install
 ```
-composer require i3bepb/reflection-for-test
+composer require --dev i3bepb/reflection-for-test
 ```
 
 ## How to use
