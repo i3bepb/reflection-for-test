@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace I3bepb\ReflectionForTest;
 
 trait AccessToMethod
@@ -7,19 +9,14 @@ trait AccessToMethod
     /**
      * Call protected/private method and return result.
      *
-     * @param mixed  $object
-     * @param string $methodName  Name method
-     * @param array  $parameters  Arguments method
-     *
-     * @return mixed
+     * @param array<int|string, mixed> $parameters Positional or named arguments.
      *
      * @throws \ReflectionException
      */
-    protected function privateMethodWithParameters($object, string $methodName, array $parameters = [])
+    protected function invokeNonPublicMethod(object $object, string $methodName, array $parameters = []): mixed
     {
-        $reflection = new \ReflectionClass(get_class($object));
+        $reflection = new \ReflectionClass($object);
         $method = $reflection->getMethod($methodName);
-        $method->setAccessible(true);
         return $method->invokeArgs($object, $parameters);
     }
 }

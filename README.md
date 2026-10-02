@@ -1,73 +1,108 @@
 # Reflection for test
 
-[![Latest Stable Version](https://poser.pugx.org/i3bepb/reflection-for-test/v)](https://packagist.org/packages/i3bepb/reflection-for-test)
-[![Total Downloads](https://poser.pugx.org/i3bepb/reflection-for-test/downloads)](https://packagist.org/packages/i3bepb/reflection-for-test)
+[![Latest Stable Version](https://img.shields.io/packagist/v/i3bepb/reflection-for-test.svg)](https://packagist.org/packages/i3bepb/reflection-for-test)
+[![Total Downloads](https://img.shields.io/packagist/dt/i3bepb/reflection-for-test.svg)](https://packagist.org/packages/i3bepb/reflection-for-test)
 
-Trait adding access method through reflection for tests
+Traits for invoking private/protected methods and reading or changing private/protected properties in tests.
 
-## Install
+## Requirements and installation
+
+Version 2 requires PHP `^8.1` (PHP 8.1 or later in the PHP 8 series).
+
+After the 2.0.0 release is published:
+
+```sh
+composer require --dev i3bepb/reflection-for-test:^2.0
 ```
-composer require --dev i3bepb/reflection-for-test
-```
 
-## How to use
-When need call private method and check result in test, you can use trait **AccessToMethod**. Example:
+## Usage
+
+Use `AccessToMethod` and `AccessToProperty` in your test class. All three helpers are protected instance methods.
 
 ```php
-  
+<?php
+
+declare(strict_types=1);
+
 use I3bepb\ReflectionForTest\AccessToMethod;
+use I3bepb\ReflectionForTest\AccessToProperty;
 use PHPUnit\Framework\TestCase;
 
-class AnyTest extends TestCase
+final class Counter
+{
+    private int $count = 1;
+
+    protected function add(int $amount): int
+    {
+        return $this->count + $amount;
+    }
+}
+
+final class CounterTest extends TestCase
 {
     use AccessToMethod;
+    use AccessToProperty;
 
-    /**
-     * Any test.
-     *
-     * @test
-     *
-     * @throws \ReflectionException
-     */
-    public function any_test()
+    public function testNonPublicMembers(): void
     {
-        $object = new ClassWithPrivateMethod();
+        $counter = new Counter();
 
-        // In $resultPrivateMethod result after call private method
-        $resultPrivateMethod = $this->privateMethodWithParameters($object, 'privateMethod', ['abc', 123]);
-        
-        // Any test...
+        // Invoke a private or protected method.
+        self::assertSame(3, $this->invokeNonPublicMethod($counter, 'add', [2]));
+
+        // Read a private or protected property.
+        self::assertSame(1, $this->getNonPublicProperty($counter, 'count'));
+
+        // Change a private or protected property.
+        $this->setNonPublicProperty($counter, 'count', 10);
+
+        self::assertSame(10, $this->getNonPublicProperty($counter, 'count'));
+        self::assertSame(12, $this->invokeNonPublicMethod($counter, 'add', [2]));
     }
-
-
+}
 ```
 
-## Tests through docker
+### Invoke non-public methods
 
-Download image
-```
-docker pull php:7.0.33-cli-alpine
+`invokeNonPublicMethod(object $object, string $methodName, array $parameters = []): mixed`
+
+Omit the third argument for methods without arguments. Pass a list for positional arguments or an associative array for named arguments, following PHP's argument ordering rules. The helper returns the method's result, including `null` for a `void` method. Exceptions thrown by the method propagate to the caller.
+
+### Read and change non-public properties
+
+`getNonPublicProperty(object $object, string $propertyName): mixed`
+
+`setNonPublicProperty(object $object, string $propertyName, mixed $value): void`
+
+The getter returns the property value. The setter changes the property on the supplied object and returns nothing.
+
+All helpers use native Reflection behavior. A missing method or property throws `ReflectionException`; the setter does not create missing properties. PHP's property type, initialization, and readonly rules still apply. The helpers do not search ancestor classes for private properties.
+
+## Migration from 1.x
+
+Version 2.0.0 is a breaking release, with no aliases for the old API:
+
+| 1.x | 2.x |
+| --- | --- |
+| `privateMethodWithParameters()` | `invokeNonPublicMethod()` |
+| `getProtectedOrPrivatePropertyValue()` | `getNonPublicProperty()` |
+| — | `setNonPublicProperty()` |
+
+The namespace `I3bepb\ReflectionForTest` and trait names remain unchanged. Helpers require an object; class-name strings are not accepted. PHP 7.x and PHP 8.0 remain on the `1.x` branch.
+
+## Run tests
+
+From a checkout, with PHP 8.1+ and Composer installed:
+
+```sh
+composer install
+composer test
 ```
 
-Run container with volume into
-```
-docker run --rm -it -v $(pwd):/app -w /app php:7.0.33-cli-alpine sh
+To run a specific test class:
+
+```sh
+composer test -- --filter AccessToPropertyTest
 ```
 
-Into container get composer - https://getcomposer.org/download/
-```
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-php -r "if (hash_file('sha384', 'composer-setup.php') === '55ce33d7678c5a611085589f1f3ddf8b3c52d662cd01d4ba75c0ee0459970c2200a51f492d557530c71c15d8dba01eae') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-php composer-setup.php
-php -r "unlink('composer-setup.php');"
-```
-
-Now exist file **composer.phar** and you can download dependencies
-```
-php composer.phar install
-```
-
-Run tests
-```
-./vendor/bin/phpunit
-```
+The test suite uses PHPUnit 10.5, the latest PHPUnit series compatible with PHP 8.1. GitHub Actions runs it on PHP 8.1, 8.2, 8.3, 8.4, and 8.5.

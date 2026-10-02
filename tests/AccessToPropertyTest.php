@@ -1,45 +1,92 @@
 <?php
 
+declare(strict_types=1);
+
 namespace I3bepb\ReflectionForTest\Tests;
 
 use I3bepb\ReflectionForTest\AccessToProperty;
 use I3bepb\ReflectionForTest\Tests\Mock\ClassWithPrivateProperty;
 use I3bepb\ReflectionForTest\Tests\Mock\ClassWithProtectedProperty;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
 
-class AccessToPropertyTest extends TestCase
+final class AccessToPropertyTest extends TestCase
 {
     use AccessToProperty;
 
-    /**
-     * Check access to private property
-     *
-     * @covers \I3bepb\ReflectionForTest\AccessToProperty::getProtectedOrPrivatePropertyValue
-     *
-     * @test
-     *
-     * @throws \ReflectionException
-     */
-    public function check_access_to_private_property()
+    public function testReadsPrivateProperty(): void
     {
-        $object = new ClassWithPrivateProperty();
-
-        $this->assertEquals('private any', $this->getProtectedOrPrivatePropertyValue($object, 'privateProperty'));
+        self::assertSame('private any', $this->getNonPublicProperty(new ClassWithPrivateProperty(), 'privateProperty'));
     }
 
-    /**
-     * Check access to protected property
-     *
-     * @covers \I3bepb\ReflectionForTest\AccessToProperty::getProtectedOrPrivatePropertyValue
-     *
-     * @test
-     *
-     * @throws \ReflectionException
-     */
-    public function check_access_to_protected_property()
+    public function testReadsProtectedProperty(): void
+    {
+        self::assertSame('protected any', $this->getNonPublicProperty(new ClassWithProtectedProperty(), 'protectedProperty'));
+    }
+
+    public function testSetsPrivatePropertyOnSpecifiedObject(): void
+    {
+        $object = new ClassWithPrivateProperty();
+        $other = new ClassWithPrivateProperty();
+
+        $this->setNonPublicProperty($object, 'privateProperty', 'changed');
+
+        self::assertSame('changed', $object->value());
+        self::assertSame('private any', $other->value());
+        self::assertSame('changed', $this->getNonPublicProperty($object, 'privateProperty'));
+    }
+
+    public function testSetsProtectedProperty(): void
     {
         $object = new ClassWithProtectedProperty();
 
-        $this->assertEquals('protected any', $this->getProtectedOrPrivatePropertyValue($object, 'protectedProperty'));
+        $this->setNonPublicProperty($object, 'protectedProperty', 'changed');
+
+        self::assertSame('changed', $object->value());
+        self::assertSame('changed', $this->getNonPublicProperty($object, 'protectedProperty'));
+    }
+
+    public function testThrowsWhenReadingMissingProperty(): void
+    {
+        $this->expectException(ReflectionException::class);
+
+        $this->getNonPublicProperty(new ClassWithPrivateProperty(), 'missingProperty');
+    }
+
+    public function testThrowsWhenSettingMissingProperty(): void
+    {
+        $this->expectException(ReflectionException::class);
+
+        $this->setNonPublicProperty(new ClassWithPrivateProperty(), 'missingProperty', 'value');
+    }
+
+    #[DataProvider('propertyValues')]
+    public function testPreservesPropertyValueAndType(mixed $value): void
+    {
+        $object = new class {
+            private mixed $value = 'initial';
+
+            public function value(): mixed
+            {
+                return $this->value;
+            }
+        };
+
+        $this->setNonPublicProperty($object, 'value', $value);
+
+        self::assertSame($value, $object->value());
+        self::assertSame($value, $this->getNonPublicProperty($object, 'value'));
+    }
+
+    public static function propertyValues(): iterable
+    {
+        yield 'null' => [null];
+        yield 'boolean' => [false];
+        yield 'integer' => [0];
+        yield 'float' => [1.5];
+        yield 'string' => ['0'];
+        yield 'array' => [['key' => 'value']];
+        yield 'object' => [new \stdClass()];
     }
 }

@@ -1,33 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace I3bepb\ReflectionForTest\Tests\Mock;
 
 class ClassWithProtectedMethod
 {
-    /**
-     * Protected Method.
-     *
-     * @return string
-     */
-    protected function xyz()
+    protected function xyz(): string
     {
-        // Any code...
-
         return 'result protected method';
     }
 
-    /**
-     * Protected method width parameters.
-     *
-     * @param  int  $a
-     * @param  int  $b
-     *
-     * @return int
-     */
-    private function protectedSum(int $a, int $b)
+    protected function protectedSum(int $a, int $b): int
     {
-        // Any code...
-
         return $a + $b;
     }
 }

@@ -1,77 +1,103 @@
 <?php
 
+declare(strict_types=1);
+
 namespace I3bepb\ReflectionForTest\Tests;
 
 use I3bepb\ReflectionForTest\AccessToMethod;
 use I3bepb\ReflectionForTest\Tests\Mock\ClassWithPrivateMethod;
 use I3bepb\ReflectionForTest\Tests\Mock\ClassWithProtectedMethod;
 use PHPUnit\Framework\TestCase;
+use ReflectionException;
+use RuntimeException;
 
-class AccessToMethodTest extends TestCase
+final class AccessToMethodTest extends TestCase
 {
     use AccessToMethod;
 
-    /**
-     * Check access to private method.
-     *
-     * @covers \I3bepb\ReflectionForTest\AccessToMethod::privateMethodWithParameters
-     *
-     * @test
-     *
-     * @throws \ReflectionException
-     */
-    public function check_access_to_private_method()
+    public function testInvokesPrivateMethod(): void
     {
-        $object = new ClassWithPrivateMethod();
-
-        $this->assertEquals('result private method', $this->privateMethodWithParameters($object, 'foo'));
+        self::assertSame('result private method', $this->invokeNonPublicMethod(new ClassWithPrivateMethod(), 'foo'));
     }
 
-    /**
-     * Check access to private method width parameters.
-     *
-     * @covers \I3bepb\ReflectionForTest\AccessToMethod::privateMethodWithParameters
-     *
-     * @test
-     *
-     * @throws \ReflectionException
-     */
-    public function check_access_to_private_method_with_parameters()
+    public function testInvokesPrivateMethodWithParameters(): void
     {
-        $object = new ClassWithPrivateMethod();
-
-        $this->assertEquals(3, $this->privateMethodWithParameters($object, 'privateSum', [1, 2]));
+        self::assertSame(3, $this->invokeNonPublicMethod(new ClassWithPrivateMethod(), 'privateSum', [1, 2]));
     }
 
-    /**
-     * Check access to protected method.
-     *
-     * @covers \I3bepb\ReflectionForTest\AccessToMethod::privateMethodWithParameters
-     *
-     * @test
-     *
-     * @throws \ReflectionException
-     */
-    public function check_access_to_protected_method()
+    public function testInvokesProtectedMethod(): void
     {
-        $object = new ClassWithProtectedMethod();
-
-        $this->assertEquals('result protected method', $this->privateMethodWithParameters($object, 'xyz'));
+        self::assertSame('result protected method', $this->invokeNonPublicMethod(new ClassWithProtectedMethod(), 'xyz'));
     }
 
-    /**
-     * Check access to protected method width parameters.
-     *
-     * @covers \I3bepb\ReflectionForTest\AccessToMethod::privateMethodWithParameters
-     *
-     * @test
-     *
-     * @throws \ReflectionException
-     */
-    public function check_access_to_protected_method_with_parameters()
+    public function testInvokesProtectedMethodWithParameters(): void
     {
-        $object = new ClassWithProtectedMethod();
+        self::assertSame(3, $this->invokeNonPublicMethod(new ClassWithProtectedMethod(), 'protectedSum', [1, 2]));
+    }
 
-        $this->assertEquals(3, $this->privateMethodWithParameters($object, 'protectedSum', [1, 2]));
+    public function testThrowsForMissingMethod(): void
+    {
+        $this->expectException(ReflectionException::class);
+
+        $this->invokeNonPublicMethod(new ClassWithPrivateMethod(), 'missingMethod');
+    }
+
+    public function testPassesNamedArguments(): void
+    {
+        $object = new class {
+            private function join(string $first, string $second): string
+            {
+                return $first . $second;
+            }
+        };
+
+        self::assertSame('ab', $this->invokeNonPublicMethod($object, 'join', ['second' => 'b', 'first' => 'a']));
+    }
+
+    public function testPreservesReturnedObjectIdentity(): void
+    {
+        $object = new class {
+            private function identity(object $value): object
+            {
+                return $value;
+            }
+        };
+        $value = new \stdClass();
+
+        self::assertSame($value, $this->invokeNonPublicMethod($object, 'identity', [$value]));
+    }
+
+    public function testReturnsNullForVoidMethodAndPreservesSideEffects(): void
+    {
+        $object = new class {
+            public bool $called = false;
+
+            private function run(): void
+            {
+                $this->called = true;
+            }
+        };
+
+        self::assertSame(null, $this->invokeNonPublicMethod($object, 'run'));
+        self::assertSame(true, $object->called);
+    }
+
+    public function testPropagatesExceptionFromMethod(): void
+    {
+        $exception = new RuntimeException('Method failed');
+        $object = new class($exception) {
+            public function __construct(private RuntimeException $exception)
+            {
+            }
+
+            private function fail(): void
+            {
+                throw $this->exception;
+            }
+        };
+
+        $this->expectExceptionObject($exception);
+
+        $this->invokeNonPublicMethod($object, 'fail');
     }
 }

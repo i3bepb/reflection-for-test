@@ -1,11 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace I3bepb\ReflectionForTest\Tests\Mock;
 
 class ClassWithPrivateProperty
 {
-    /**
-     * @var string Private property
-     */
-    private $privateProperty = 'private any';
+    private string $privateProperty = 'private any';
+
+    public function value(): string
+    {
+        return $this->privateProperty;
+    }
 }

@@ -1,6 +1,6 @@
 {
     "name": "i3bepb/reflection-for-test",
-    "description": "Trait adding access method through reflection for tests",
+    "description": "Traits for invoking non-public methods and accessing non-public properties in tests",
     "license": "MIT",
     "autoload": {
         "psr-4": {
@@ -14,9 +14,12 @@
     },
     "minimum-stability": "stable",
     "require": {
-        "php": "^7.0 || ^8.0"
+        "php": "^8.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "~6"
+        "phpunit/phpunit": "^10.5"
+    },
+    "scripts": {
+        "test": "phpunit"
     }
 }
